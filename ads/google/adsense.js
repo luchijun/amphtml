@@ -14,14 +14,27 @@
  * limitations under the License.
  */
 
+import {getAdsenseInfo, adsenseRequestUrlForAmpAd} from './utils';
 import {checkData} from '../../3p/3p';
+import {
+  parseExperimentIds,
+  validateExperimentIds,
+} from './traffic-experiments';
 
 /**
+ * Make an adsense iframe.
  * @param {!Window} global
  * @param {!Object} data
  */
 export function adsense(global, data) {
-  checkData(data, ['adClient', 'adSlot', 'adHost', 'adtest', 'tagOrigin']);
+  // Placeholder for experiment framework.
+  if (!global.context.experiment) {
+    adsenseDirectRequest(global, data);
+    return;
+  }
+
+  checkData(data, ['adClient', 'adSlot', 'adHost', 'adtest', 'tagOrigin',
+                   'experimentId']);
   if (global.context.clientId) {
     // Read by GPT for GA/GPT integration.
     global.gaGlobal = {
@@ -41,7 +54,7 @@ export function adsense(global, data) {
   if (data['adHost']) {
     i.setAttribute('data-ad-host', data['adHost']);
   }
-  if (data['adtest']) {
+  if (data['adtest'] != null) {
     i.setAttribute('data-adtest', data['adtest']);
   }
   if (data['tagOrigin']) {
@@ -50,6 +63,75 @@ export function adsense(global, data) {
   i.setAttribute('data-page-url', global.context.canonicalUrl);
   i.setAttribute('class', 'adsbygoogle');
   i.style.cssText = 'display:inline-block;width:100%;height:100%;';
+  const initializer = {};
+  if (data['experimentId']) {
+    // We need to forward the experiment ID to the adsense code in such a way
+    // that it will attach the ID to the generated URL.  Ideally, we could
+    // attach a data-* attribute to the ins tag.  However, we need the value
+    // to be an array, rather than a scalar string.  It looks like the
+    // publisher var parsing code is probably sophisticated enough to handle
+    // arrays, but the syntax isn't clear.  Simplest is just to force EIDs in
+    // by attaching them to the .params field of the initializer object.
+    const experimentIdList = parseExperimentIds(data['experimentId']);
+    if (experimentIdList && validateExperimentIds(experimentIdList)) {
+      initializer['params'] = {
+        'google_ad_modifications': {
+          'eids': experimentIdList,
+        },
+      };
+    }
+  }
   global.document.getElementById('c').appendChild(i);
-  (global.adsbygoogle = global.adsbygoogle || []).push({});
+  (global.adsbygoogle = global.adsbygoogle || []).push(initializer);
+}
+
+
+/**
+ * Make the ad iframe, with src=<the ad request>
+ * This makes the request directly, rather than using adsbygoogle.js.
+ * @param {!Window} global
+ * @param {!Object} data
+ */
+function adsenseDirectRequest(global, data) {
+  checkData(data, ['adClient', 'adSlot', 'adHost', 'adtest', 'tagOrigin']);
+  if (global.context.clientId) {
+    // Read by GPT for GA/GPT integration.
+    global.gaGlobal = {
+      vid: global.context.clientId,
+      hid: global.context.pageViewId,
+    };
+  }
+
+  const adsenseInfo = getAdsenseInfo(global.context.master);
+  const slotNumber = adsenseInfo.nextSlotNumber();
+  makeAdsenseAd(global, data, slotNumber, global.context.initialIntersection);
+}
+
+/**
+ * Make an ad request.
+ * @param {!Window} global
+ * @param {!Object} data
+ * @param {number} slotNumber
+ * @param {!IntersectionObserverEntry} change
+ */
+function makeAdsenseAd(global, data, slotNumber, change) {
+  const iframe = global.document.createElement('iframe');
+  const id = `google_ads_frame${slotNumber}`;
+  iframe.name = id;
+  iframe.id = id;
+
+  const slot = change.boundingClientRect;
+  // iframe.ampLocation = parseUrl(src);
+  iframe.width = slot.width;
+  iframe.height = slot.height;
+  iframe.style.border = 'none';
+  iframe.setAttribute('scrolling', 'no');
+  iframe.onload = function() {
+    // Chrome does not reflect the iframe readystate.
+    this.readyState = 'complete';
+  };
+
+  iframe.src = adsenseRequestUrlForAmpAd(slotNumber, global, data, change);
+
+  global.document.getElementById('c').appendChild(iframe);
 }

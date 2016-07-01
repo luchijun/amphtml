@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+import {
+  adsenseIsA4AEnabled,
+} from '../extensions/amp-ad-network-adsense-impl/0.1/adsense-a4a-config';
+
 /**
  * URLs to prefetch for a given ad type.
  *
@@ -205,5 +209,5 @@ export const clientIdScope = {
  * @type {!Object<!string, !function(!Window, !Element): boolean>}
  */
 export const a4aRegistry = {
-  // Add mappings for specific ad networks here.
+  'adsense': adsenseIsA4AEnabled,
 };

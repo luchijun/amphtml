@@ -35,6 +35,8 @@ export function resetExtensionScriptInsertedOrPresentForTesting() {
  * Check script info in HTML head and make update if necessary
  * @param {!Window} win
  * @param {string} extension
+ * @param {boolean} opt_ignoreElementExistenceCheck if true, will not check and
+ *    require that extension element exist in document
  */
 export function insertAmpExtensionScript(win, extension) {
   if (extension == 'amp-embed') {

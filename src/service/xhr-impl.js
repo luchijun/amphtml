@@ -204,6 +204,26 @@ export class Xhr {
   }
 
   /**
+   * @param {!string} input URL
+   * @param {Array<string>} opt_responseHeaderNames List of response headers to
+   * extract and return.
+   * @param {FetchInitDef} opt_init Fetch options object.
+   * @return {!Promise<!FetchResponse>}
+   */
+  fetch(input, opt_init) {
+    const init = opt_init || {};
+    // The "real" fetch API does not specify the response type in the request.
+    // The fetch response object lets you extract the body in any of the types.
+    // Here, specify 'arraybuffer' in case we use the polyfill, since that is
+    // what we will use when we use fetch.
+    init.responseType = 'arraybuffer';
+    init.method = normalizeMethod_(init.method);
+    init.headers = init.headers || {};
+    return this.fetchAmpCors_(input, init).then(response =>
+      assertSuccess(response));
+  }
+
+  /**
    * Sends the request, awaits result and confirms that it was successful.
    *
    * See https://developer.mozilla.org/en-US/docs/Web/API/GlobalFetch/fetch
@@ -217,6 +237,40 @@ export class Xhr {
   sendSignal(input, opt_init) {
     return this.fetchAmpCors_(input, opt_init).then(response => {
       return assertSuccess(response);
+    });
+  }
+
+  /**
+   * Add "__amp_source_origin" query parameter to the URL. Ideally, we'd be
+   * able to set a header (e.g. AMP-Source-Origin), but this will force
+   * preflight request on all CORS request.
+   * @param {!Window} win
+   * @param {string} url
+   * @return {string}
+   */
+  getCorsUrl(win, url) {
+    const sourceOrigin = getSourceOrigin(win.location.href);
+    const parsedUrl = parseUrl(url);
+    const query = parseQueryString(parsedUrl.search);
+    user.assert(!(SOURCE_ORIGIN_PARAM in query),
+        'Source origin is not allowed in %s', url);
+    return addParamToUrl(url, SOURCE_ORIGIN_PARAM, sourceOrigin);
+  }
+
+  /**
+   * @param {!ArrayBuffer} bytes
+   * @return {!Promise<string>}
+   */
+  utf8FromArrayBuffer(bytes) {
+    if (window.TextDecoder) {
+      return Promise.resolve(new TextDecoder('utf-8').decode(bytes));
+    }
+    return new Promise(function(resolve, unusedReject) {
+      const reader = new FileReader();
+      reader.onloadend = function(unusedEvent) {
+        resolve(reader.result);
+      };
+      reader.readAsText(new Blob([bytes]));
     });
   }
 
@@ -527,6 +581,24 @@ class FetchResponseHeaders {
   get(name) {
     return this.xhr_.getResponseHeader(name);
   }
+}
+
+
+/**
+ * @param {!ArrayBuffer} bytes
+ * @return {!Promise<string>}
+ */
+export function utf8FromArrayBuffer(bytes) {
+  if (window.TextDecoder) {
+    return Promise.resolve(new TextDecoder('utf-8').decode(bytes));
+  }
+  return new Promise(function(resolve, unusedReject) {
+    const reader = new FileReader();
+    reader.onloadend = function(unusedEvent) {
+      resolve(reader.result);
+    };
+    reader.readAsText(new Blob([bytes]));
+  });
 }
 
 
