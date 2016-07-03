@@ -21,7 +21,7 @@ import {
   getAdsenseInfo,
   adsenseRequestUrl,
   getAmpCorrelator,
-} from '../../../ads/google/utils';
+} from '../../../ads/google/a4a-utils';
 import {documentInfoFor} from '../../../src/document-info';
 import {timer} from '../../../src/timer';
 

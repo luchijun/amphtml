@@ -599,8 +599,9 @@ function hasAnyTerms(file) {
   var is3pFile = /3p|ads/.test(pathname) ||
       basename == '3p.js' ||
       basename == 'style.js';
-  var isImplFile = basename == 'amp-ad-3p-impl.js';
-  if (is3pFile && !isTestFile &&!isImplFile) {
+  var isImplFile = basename == 'amp-ad-3p-impl.js' ||
+      basename == 'amp-ad-network-adsense-impl.js';
+  if (is3pFile && !isTestFile && !isImplFile) {
     has3pTerms = matchTerms(file, forbidden3pTerms);
   }
 
