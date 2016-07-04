@@ -19,29 +19,8 @@ import {
   validateExperimentIds,
   parseExperimentIds,
 } from './traffic-experiments';
+import {makeCorrelator} from './utils';
 
-
-/**
- * @param {!Window} global
- * @return {number}
- */
-export function getCorrelator(global) {
-  return getAmpCorrelator(global.context.clientId, global.context.pageViewId);
-}
-
-/**
- * @param {?string} clientId
- * @param {string} pageViewId
- * @return {number}
- */
-export function getAmpCorrelator(clientId, pageViewId) {
-  const pageViewIdNumeric = Number(pageViewId || 0);
-  if (clientId) {
-    return pageViewIdNumeric + (clientId.replace(/\D/g, '') % 1e6) * 1e6;
-  } else {
-    return pageViewIdNumeric;
-  }
-}
 
 /**
  * @param {number} time
@@ -122,7 +101,7 @@ export function adsenseRequestUrlForAmpAd(slotNumber, global, data,
   // Assumes that data has been checked for valid parameters, via checkData.
   return adsenseRequestUrl(global.context.startTime, slotNumber, global,
                            data, 1, global.context.canonicalUrl,
-                           getCorrelator(global), intersectionRecord);
+                           makeCorrelator(global), intersectionRecord);
 }
 
 /**

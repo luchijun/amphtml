@@ -19,11 +19,19 @@
  * @return {number}
  */
 export function getCorrelator(global) {
-  const clientId = global.context.clientId;
-  const pageViewId = global.context.pageViewId;
-  if (global.context.clientId) {
-    return pageViewId + (clientId.replace(/\D/g, '') % 1e6) * 1e6;
+  return makeCorrelator(global.context.clientId, global.context.pageViewId);
+}
+
+/**
+ * @param {?string} clientId
+ * @param {string} pageViewId
+ * @return {number}
+ */
+export function makeCorrelator(clientId, pageViewId) {
+  const pageViewIdNumeric = Number(pageViewId || 0);
+  if (clientId) {
+    return pageViewIdNumeric + (clientId.replace(/\D/g, '') % 1e6) * 1e6;
   } else {
-    return pageViewId;
+    return pageViewIdNumeric;
   }
 }

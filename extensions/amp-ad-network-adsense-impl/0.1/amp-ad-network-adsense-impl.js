@@ -17,10 +17,10 @@ import {AmpA4A} from '../../amp-a4a/0.1/amp-a4a';
 import {isAdsenseA4AValidEnvironment} from './adsense-a4a-config';
 import {getMode} from '../../../src/mode';
 import {getAdCid} from '../../../src/ad-cid';
+import {makeCorrelator} from '../../../ads/google/utils';
 import {
   getAdsenseInfo,
   adsenseRequestUrl,
-  getAmpCorrelator,
 } from '../../../ads/google/a4a-utils';
 import {documentInfoFor} from '../../../src/document-info';
 import {timer} from '../../../src/timer';
@@ -45,7 +45,7 @@ function adsenseRequestUrlForAmpA4a_(startTime, slotNumber, global, data,
   const pageViewId = documentInfo.pageViewId;
   return adsenseRequestUrl(startTime, slotNumber, global, data, isAmp,
       documentInfo.canonicalUrl,
-      getAmpCorrelator(clientId, pageViewId),
+      makeCorrelator(clientId, pageViewId),
       intersectionRecord);
 }
 
